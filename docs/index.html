@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="color-scheme" content="dark light"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>widgets-kit — the component layer</title>
+<style>
+:root{--bg:#0f1115;--card:#171a21;--ink:#e7e9ee;--mut:#9aa3b2;--line:#252a34;--acc:#22c55e;--code:#1d222b;--danger:#f7768e}
+:root[data-theme="light"]{color-scheme:light;--bg:#f6f7f9;--card:#fff;--ink:#0f1115;--mut:#4b5563;--line:#dfe3e8;--acc:#15803d;--code:#f1f3f6;--danger:#c026d3}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header,main,footer{max-width:980px;margin:0 auto;padding:24px 20px}
+h1{margin:0 0 6px;font-size:24px}h2{margin:30px 0 10px;font-size:16px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut)}
+.mut{color:var(--mut)}
+.theme-btn{float:right;width:30px;height:30px;margin:2px 0 0 10px;padding:0;background:transparent;color:inherit;
+  border:1px solid var(--line);border-radius:50%;cursor:pointer;opacity:.8}
+.theme-btn:hover{opacity:1}.theme-btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0}
+/* ---- the kit's classes, styled here: the kit ships no CSS ---- */
+.w-button{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:8px;
+  padding:8px 14px;font:inherit;font-size:14px;cursor:pointer;display:inline-flex;gap:8px;align-items:center}
+.w-button-primary{background:var(--acc);color:#06210f;border-color:var(--acc);font-weight:600}
+.w-button-danger{background:transparent;color:var(--danger);border-color:var(--danger)}
+.w-action-icon{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:8px;
+  width:32px;height:32px;display:grid;place-items:center;cursor:pointer}
+.w-action-icon.is-active{border-color:var(--acc);color:var(--acc)}
+.w-action-icon-group{display:flex;gap:6px}
+.w-copy{background:var(--card);color:var(--acc);border:1px solid var(--line);border-radius:8px;
+  padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}
+.w-segmented{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.w-segment{background:transparent;color:var(--ink);border:0;padding:6px 14px;font:inherit;font-size:13px;cursor:pointer}
+.w-segment.is-on{background:var(--acc);color:#06210f;font-weight:600}
+.w-text{font-size:14px}.w-text-secondary{color:var(--mut)}
+.w-tag{display:inline-flex;gap:6px;align-items:center;background:var(--code);border:1px solid var(--line);
+  border-radius:999px;padding:2px 10px;font-size:12px}
+.w-tag-primary{border-color:var(--acc);color:var(--acc)}
+.w-tag-close{background:none;border:0;color:inherit;cursor:pointer;font-size:14px;line-height:1;padding:0}
+.w-avatar{width:32px;height:32px;border-radius:50%;background:var(--code);color:var(--ink);display:inline-grid;
+  place-items:center;font-size:12px;font-weight:600;overflow:hidden;border:1px solid var(--line)}
+.w-avatar img{width:100%;height:100%;object-fit:cover}
+.w-avatar-square{border-radius:8px}
+.w-group-avatar{display:inline-flex}
+.w-group-avatar .w-avatar{margin-left:-8px}
+.w-group-avatar .w-avatar:first-child{margin-left:0}
+.w-badge{background:var(--acc);color:#06210f;border-radius:999px;padding:0 6px;font-size:11px;font-weight:700}
+.w-badge.is-dot{display:inline-block;width:8px;height:8px;padding:0}
+.w-alert{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-left-width:4px;
+  border-radius:8px;padding:10px 12px;background:var(--card);font-size:13px;margin:8px 0}
+.w-alert-info{border-left-color:#1677ff}.w-alert-success{border-left-color:var(--acc)}
+.w-alert-warning{border-left-color:#fadb14}.w-alert-error{border-left-color:var(--danger)}
+.w-alert-icon{font-weight:700}
+.w-alert-title{margin:0;font-weight:600}.w-alert-message{margin:2px 0 0;color:var(--mut)}
+.w-alert-close{margin-left:auto;background:none;border:0;color:var(--mut);cursor:pointer;font-size:15px}
+.w-progress{height:8px;background:var(--code);border-radius:999px;overflow:hidden;width:100%}
+.w-progress-fill{height:100%;background:var(--acc);transition:width .2s}
+.w-progress.is-indeterminate .w-progress-fill{animation:slide 1.2s infinite}
+@keyframes slide{0%{margin-left:-40%}100%{margin-left:100%}}
+.w-spinner{width:18px;height:18px;border:2px solid var(--line);border-top-color:var(--acc);border-radius:50%;
+  display:inline-block;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.w-result{text-align:center;padding:20px}
+.w-result-icon{font-size:26px;color:var(--acc)}
+.w-result-title{margin:8px 0 2px;font-weight:600}.w-result-subtitle{margin:0;color:var(--mut);font-size:13px}
+.w-result-actions{display:flex;gap:8px;justify-content:center;margin-top:12px}
+.w-empty{text-align:center;padding:24px;color:var(--mut)}
+.w-empty-title{margin:0;font-weight:600;color:var(--ink)}
+.w-skeleton-line{background:var(--code);border-radius:6px;margin:6px 0;animation:pulse 1.4s infinite}
+@keyframes pulse{50%{opacity:.5}}
+.w-list{list-style:none;margin:0;padding:0}
+.w-list-item{padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}
+.w-accordion{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.w-accordion-header{width:100%;display:flex;justify-content:space-between;align-items:center;background:var(--card);
+  color:var(--ink);border:0;border-bottom:1px solid var(--line);padding:10px 12px;font:inherit;font-size:14px;
+  cursor:pointer;text-align:left}
+.w-accordion-chevron{transition:transform .16s;color:var(--mut)}
+.w-accordion-header.is-open .w-accordion-chevron{transform:rotate(90deg)}
+.w-accordion-panel{padding:10px 12px;font-size:13px;color:var(--mut);border-bottom:1px solid var(--line)}
+.w-layer{position:fixed;inset:0;z-index:50;display:grid;place-items:center}
+.w-layer[hidden]{display:none}
+.w-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.55)}
+.w-modal{position:relative;background:var(--card);border:1px solid var(--line);border-radius:12px;
+  width:min(480px,92vw);max-height:86vh;overflow:auto}
+.w-modal-head{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line)}
+.w-modal-title{margin:0;font-size:16px}
+.w-modal-close{background:none;border:0;color:var(--mut);font-size:18px;cursor:pointer}
+.w-modal-body{padding:16px;font-size:14px;color:var(--mut)}
+.w-modal-foot{display:flex;gap:8px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--line)}
+.w-layer-drawer{place-items:stretch}
+.w-drawer{position:relative;background:var(--card);width:min(340px,86vw);height:100%;margin-left:auto;
+  display:flex;flex-direction:column;border-left:1px solid var(--line)}
+.w-drawer-left{margin-left:0;margin-right:auto;border-left:0;border-right:1px solid var(--line)}
+.w-drawer-head{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line)}
+.w-drawer-title{margin:0;font-size:16px}
+.w-drawer-close{background:none;border:0;color:var(--mut);font-size:18px;cursor:pointer}
+.w-drawer-body{padding:16px;font-size:14px;color:var(--mut);overflow:auto}
+.w-toast-host{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);display:flex;flex-direction:column;
+  gap:8px;z-index:60;align-items:center}
+.w-toast{display:flex;gap:10px;align-items:center;background:var(--card);border:1px solid var(--line);
+  border-radius:999px;padding:8px 14px;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.w-toast-success{border-color:var(--acc)}
+.w-toast-close{background:none;border:0;color:var(--mut);cursor:pointer;font-size:14px}
+.w-tooltip-wrap{position:relative;display:inline-block}
+.w-tooltip{position:absolute;left:50%;bottom:100%;transform:translateX(-50%);margin-bottom:6px;
+  background:var(--ink);color:var(--bg);border-radius:6px;padding:4px 8px;font-size:12px;white-space:nowrap}
+.w-popover-wrap{position:relative;display:inline-block}
+.w-popover-trigger{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:8px;
+  padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}
+.w-popover{position:absolute;top:100%;left:0;margin-top:6px;background:var(--card);border:1px solid var(--line);
+  border-radius:10px;padding:12px;font-size:13px;min-width:180px;z-index:20}
+.w-dropdown{position:relative;display:inline-block}
+.w-menu-trigger{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:8px;
+  padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}
+.w-menu{position:absolute;top:100%;left:0;margin:6px 0 0;padding:4px;list-style:none;background:var(--card);
+  border:1px solid var(--line);border-radius:10px;min-width:160px;z-index:20}
+.w-menu-item{padding:6px 10px;border-radius:6px;font-size:13px;cursor:pointer}
+.w-menu-item:hover{background:var(--code)}
+.w-menu-item.is-danger{color:var(--danger)}
+.w-menu-sep{height:1px;background:var(--line);margin:4px 0}
+.w-tabs-wrap{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.w-tabs{display:flex;border-bottom:1px solid var(--line);background:var(--card)}
+.w-tab{background:none;border:0;border-bottom:2px solid transparent;color:var(--mut);padding:9px 14px;
+  font:inherit;font-size:13px;cursor:pointer}
+.w-tab.is-active{color:var(--acc);border-bottom-color:var(--acc);font-weight:600}
+.w-tab-panel{padding:12px 14px;font-size:13px;color:var(--mut)}
+.w-pagination{display:flex;gap:4px;align-items:center}
+.w-page{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:6px;
+  min-width:30px;height:30px;font:inherit;font-size:13px;cursor:pointer}
+.w-page.is-current{background:var(--acc);color:#06210f;border-color:var(--acc);font-weight:700}
+.w-page:disabled{opacity:.4;cursor:default}
+.w-page-gap{color:var(--mut);padding:0 4px}
+.w-breadcrumb-list{display:flex;gap:8px;list-style:none;margin:0;padding:0;font-size:13px}
+.w-breadcrumb-item+.w-breadcrumb-item::before{content:"/";color:var(--mut);margin-right:8px}
+.w-breadcrumb a{color:var(--acc)}
+.w-steps{display:flex;gap:16px;list-style:none;margin:0;padding:0;flex-wrap:wrap}
+.w-step{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--mut)}
+.w-step-dot{width:22px;height:22px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-size:11px}
+.w-step-done .w-step-dot{background:var(--acc);color:#06210f;border-color:var(--acc)}
+.w-step-current .w-step-dot{border-color:var(--acc);color:var(--acc)}
+.w-step-current .w-step-label{color:var(--ink);font-weight:600}
+.w-grid{gap:10px}
+.w-grid>div{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px;font-size:13px}
+.w-divider{height:1px;background:var(--line);margin:14px 0;position:relative}
+.w-divider-label{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--bg);
+  padding:0 8px;font-size:11px;color:var(--mut)}
+.w-header{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line);padding-bottom:10px}
+.w-header-title{margin:0;font-size:16px;flex:1}
+.w-header-left,.w-header-right{display:flex;gap:6px}
+code{background:rgba(127,127,127,.14);padding:1px 5px;border-radius:4px;font-size:12.5px}
+</style></head><body>
+<header>
+  <button class="theme-btn" id="theme" title="Switch theme" aria-label="Switch theme">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg>
+  </button>
+  <h1>widgets-kit</h1>
+  <p class="mut">The component layer for offline apps. No CSS ships with it — the classes are
+  plain and this page styles them, so your <code>design.css</code> can do the same.</p>
+</header>
+
+<main>
+  <h2>Action</h2>
+  <div class="row" id="action"></div>
+  <h2>Display</h2>
+  <div class="row" id="display"></div>
+  <div id="accordion" style="max-width:420px"></div>
+  <div class="row" id="list" style="max-width:420px"></div>
+  <h2>Feedback</h2>
+  <div id="alerts" style="max-width:520px"></div>
+  <div class="row" id="feedback"></div>
+  <h2>Overlay</h2>
+  <div class="row" id="overlay"></div>
+  <h2>Nav</h2>
+  <div id="tabs" style="max-width:520px;margin-bottom:12px"></div>
+  <div class="row" id="nav"></div>
+  <h2>Layout</h2>
+  <div id="layout"></div>
+</main>
+
+<footer class="mut" style="font-size:13px">
+  <p>PolyForm Noncommercial 1.0.0. (c) 2026 Dr Sohil Momin. Component set follows lobe-mygo pkg/action, display, feedback, overlay, nav and layout (MIT).</p>
+</footer>
+
+<script src="../widgets-kit.js"></script>
+<script>
+var W = window.Widgets;
+function put(hostId, node) { document.getElementById(hostId).appendChild(node.el || node); return node; }
+
+/* ---------- action ---------- */
+put("action", W.button({ label: "Primary", variant: "primary" }));
+put("action", W.button({ label: "Default" }));
+put("action", W.button({ label: "Danger", variant: "danger" }));
+put("action", W.actionIconGroup({ items: [{ label: "Bold", icon: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 5h6a4 4 0 0 1 0 8H7z"/></svg>' },
+                                         { label: "Italic", icon: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 4h-9M14 20H5M15 4L9 20"/></svg>' }] }));
+put("action", W.copyButton({ text: "widgets-kit", label: "Copy" }));
+put("action", W.segmented({ options: ["day", "week", "month"], value: "week" }));
+
+/* ---------- display ---------- */
+put("display", W.tag({ label: "new", color: "primary" }));
+put("display", W.tag({ label: "closable", closable: true }));
+put("display", W.avatar({ name: "Sohil Momin" }));
+put("display", W.groupAvatar({ items: [{ name: "Ada Lovelace" }, { name: "Grace Hopper" }, { name: "Alan Turing" }, { name: "Edsger Dijkstra" }, { name: "Barbara Liskov" }], max: 3 }));
+put("display", W.badge({ count: 12, max: 9 }));
+put("display", W.badge({ dot: true }));
+put("display", W.spinner({}));
+put("display", W.text({ text: "A span of text", type: "secondary" }));
+
+put("accordion", W.accordion({
+  items: [
+    { title: "What is this?", content: "The component layer the apps hand-roll." },
+    { title: "Does it ship CSS?", content: "No. Plain classes, your stylesheet." },
+    { title: "Is it accessible?", content: "Roles, aria-expanded, focus trapping, Escape." }
+  ],
+  defaultOpen: 0
+}));
+
+put("list", W.list({ items: ["Arnica montana", "Belladonna", "Bryonia alba"], ordered: false }));
+
+/* ---------- feedback ---------- */
+put("alerts", W.alert({ type: "info", title: "Note", message: "Alerts announce themselves: role=status, or role=alert for errors." }));
+put("alerts", W.alert({ type: "success", title: "Saved", message: "Everything is on your device.", closable: true }));
+put("alerts", W.alert({ type: "warning", message: "No backup taken yet." }));
+
+put("feedback", W.button({ label: "Open modal", variant: "primary", onClick: function () { modal.open(); } }));
+put("feedback", W.button({ label: "Open drawer", onClick: function () { drawer.open(); } }));
+put("feedback", W.button({ label: "Toast", onClick: function () { W.toast("Saved to this device", { type: "success" }); } }));
+put("feedback", W.progress({ value: 62 }));
+put("feedback", W.result({ title: "All done", subtitle: "Nothing left in the queue" }));
+
+var modal = W.modal({
+  title: "Delete this case?",
+  body: "The record is removed from this device. Tab is trapped here, Escape closes, and focus goes back to the button you pressed.",
+  actions: [W.button({ label: "Cancel", onClick: function () { modal.close(); } }),
+            W.button({ label: "Delete", variant: "danger", onClick: function () { modal.close(); W.toast("Deleted"); } })]
+});
+modal.mount(document.body);
+
+var drawer = W.drawer({ title: "Filters", side: "right", body: "A drawer is the same layer machinery, anchored to an edge." });
+drawer.mount(document.body);
+
+/* ---------- overlay ---------- */
+put("overlay", W.tooltip({ content: "A tooltip on hover and focus", anchor: W.button({ label: "Hover me" }) }));
+put("overlay", W.popover({ content: "A popover keeps its own open state.", label: "Popover" }));
+put("overlay", W.dropdownMenu({
+  label: "Menu",
+  items: [
+    { label: "Edit", value: "edit", onSelect: function () { W.toast("edit"); } },
+    { label: "Duplicate", value: "dup", onSelect: function () { W.toast("duplicate"); } },
+    { separator: true },
+    { label: "Delete", value: "del", danger: true, onSelect: function () { W.toast("delete"); } }
+  ]
+}));
+
+/* ---------- nav ---------- */
+put("tabs", W.tabs({
+  items: [
+    { label: "Overview", content: "Arrow keys move between tabs; the panel is wired by aria-controls." },
+    { label: "Activity", content: "Nothing yet." },
+    { label: "Settings", content: "Three tabs, one panel." }
+  ]
+}));
+put("nav", W.pagination({ total: 12, value: 5 }));
+put("nav", W.breadcrumb({ items: [{ label: "Home", href: "#" }, { label: "Cases", href: "#" }, { label: "042" }] }));
+put("nav", W.steps({ items: [{ label: "Intake" }, { label: "Analysis" }, { label: "Plan" }], current: 1 }));
+
+/* ---------- layout ---------- */
+put("layout", W.header({ title: "Header", left: W.button({ label: "Back" }), right: W.button({ label: "New", variant: "primary" }) }));
+put("layout", W.divider({ label: "or" }));
+put("layout", W.grid({ min: 150, children: [
+  W.block({ children: ["grid item"] }), W.block({ children: ["grid item"] }),
+  W.block({ children: ["grid item"] }), W.block({ children: ["grid item"] })
+] }));
+put("layout", W.skeleton({ lines: 3 }));
+
+/* ---------- theme ---------- */
+(function () {
+  var key = "widgets-kit-theme";
+  function apply(t) { document.documentElement.setAttribute("data-theme", t); }
+  var saved = null; try { saved = localStorage.getItem(key); } catch (e) {}
+  var system = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  apply(saved || system);
+  document.getElementById("theme").addEventListener("click", function () {
+    var next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    apply(next); try { localStorage.setItem(key, next); } catch (e) {}
+  });
+})();
+</script>
+</body></html>

@@ -1,0 +1,8 @@
+{
+  "name": "widgets-kit",
+  "version": "1.0.0",
+  "private": true,
+  "description": "widgets-kit \u2014 the component layer for offline apps: buttons, tags, avatars, alerts, progress, modals, drawers, toasts, menus, tabs, accordion, pagination, steps and layout.",
+  "scripts": { "test": "node test-node.js" },
+  "license": "SEE LICENSE IN LICENSE"
+}
