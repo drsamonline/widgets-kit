@@ -52,7 +52,7 @@ The kit ships **no CSS**. Every element carries a plain class (`w-button`, `w-mo
 
 ```
 node test-node.js
-152 passed, 0 failed
+206 passed, 0 failed
 ```
 
 The tests run against a small DOM written inside `test-node.js`, so the kit takes the same code
