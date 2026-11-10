@@ -463,6 +463,13 @@
     return function () { container.removeEventListener && container.removeEventListener("keydown", onKey); };
   }
 
+  /* A document-level listener, removed by the returned function. Same shape as
+     onEscape, so a caller can hold one "off" handle per thing it added. */
+  function onDoc(type, fn) {
+    if (typeof document !== "undefined" && document.addEventListener) document.addEventListener(type, fn);
+    return function () { if (typeof document !== "undefined" && document.removeEventListener) document.removeEventListener(type, fn); };
+  }
+
   function onEscape(fn) {
     function handler(e) { if (e.key === "Escape") fn(); }
     if (typeof document !== "undefined" && document.addEventListener) document.addEventListener("keydown", handler);
@@ -978,6 +985,143 @@
   /* ---------- utility ---------- */
   W.trapFocus = trapFocus;
   W.cx = cx;
+
+
+  /* ---------- sortable list ---------- */
+  /* Reordering is pure: moveItem takes the array and two indices and returns a new
+     array. The drag handlers only decide which indices to hand it, so the rule can
+     be tested without a pointer. */
+  W.moveItem = function (arr, from, to) {
+    var a = (arr || []).slice();
+    if (from < 0 || to < 0 || from >= a.length || to >= a.length || from === to) return a;
+    var item = a.splice(from, 1)[0];
+    a.splice(to, 0, item);
+    return a;
+  };
+
+  /* Which slot a pointer at y is over, given the item heights. -1 means none. */
+  W.slotAt = function (y, tops, heights) {
+    for (var i = 0; i < tops.length; i++) {
+      if (y >= tops[i] && y < tops[i] + heights[i]) return i;
+    }
+    return -1;
+  };
+
+  W.sortableList = function (props) {
+    var p = props || {};
+    var list = el("ul", { class: "w-sortable", role: "list" });
+    var ev = emitter();
+    var data = (p.items || []).slice();
+    var dragFrom = -1;
+
+    function render() {
+      list.innerHTML = "";
+      data.forEach(function (item, i) {
+        var label = item && item.label != null ? item.label : String(item);
+        var li = el("li", {
+          class: "w-sortable-item",
+          draggable: "true",
+          "data-index": String(i),
+          role: "listitem",
+          tabindex: "0"
+        }, [el("span", { class: "w-sortable-grip", "aria-hidden": "true", text: "⋮⋮" }),
+            el("span", { class: "w-sortable-label", text: label })]);
+        li.addEventListener("dragstart", function () { dragFrom = i; li.className = "w-sortable-item is-dragging"; });
+        li.addEventListener("dragend", function () { li.className = "w-sortable-item"; dragFrom = -1; });
+        li.addEventListener("dragover", function (e) { if (e && e.preventDefault) e.preventDefault(); });
+        li.addEventListener("drop", function (e) {
+          if (e && e.preventDefault) e.preventDefault();
+          if (dragFrom >= 0) api.move(dragFrom, i);
+        });
+        /* keyboard: alt+arrow moves an item, so reordering does not need a mouse */
+        li.addEventListener("keydown", function (e) {
+          if (!e || !e.altKey) return;
+          if (e.key === "ArrowUp") { if (e.preventDefault) e.preventDefault(); api.move(i, i - 1); }
+          if (e.key === "ArrowDown") { if (e.preventDefault) e.preventDefault(); api.move(i, i + 1); }
+        });
+        list.appendChild(li);
+      });
+    }
+
+    var api = {
+      el: list,
+      items: function () { return data.slice(); },
+      set: function (items) { data = (items || []).slice(); render(); return api; },
+      move: function (from, to) {
+        var next = W.moveItem(data, from, to);
+        if (next.length !== data.length || from === to) return api;
+        data = next;
+        render();
+        if (p.onMove) p.onMove(from, to, api.items());
+        ev.emit("move", { from: from, to: to, items: api.items() });
+        return api;
+      },
+      on: function (k, fn) { ev.on(k, fn); return api; }
+    };
+
+    render();
+    return api;
+  };
+
+  /* ---------- context menu ---------- */
+  /* A menu at the pointer. Same item shape as dropdownMenu, plus x/y, and it closes
+     on Escape, on a click elsewhere, and after a selection. */
+  W.contextMenu = function (props) {
+    var p = props || {};
+    var list = el("ul", { class: "w-context-menu", role: "menu", hidden: true });
+    var ev = emitter();
+    var offDoc = null;
+    var offKey = null;
+
+    (p.items || []).forEach(function (item) {
+      if (item.separator) { list.appendChild(el("li", { class: "w-menu-sep", role: "separator" })); return; }
+      var li = el("li", { class: "w-menu-item", role: "menuitem", tabindex: "-1", "data-value": item.value },
+                  [el("span", { class: "w-menu-label", text: item.label == null ? item.value : item.label })]);
+      if (item.danger) li.className = "w-menu-item is-danger";
+      li.addEventListener("click", function () {
+        if (item.disabled) return;
+        api.close();
+        if (item.onSelect) item.onSelect(item.value);
+        ev.emit("select", item.value);
+      });
+      list.appendChild(li);
+    });
+
+    function outside(e) {
+      if (e && e.target && list.contains && list.contains(e.target)) return;
+      api.close();
+    }
+
+    var api = {
+      el: list,
+      open: function (x, y) {
+        list.style.left = (x || 0) + "px";
+        list.style.top = (y || 0) + "px";
+        list.hidden = false;
+        api.x = x || 0;
+        api.y = y || 0;
+        if (typeof document !== "undefined" && document.addEventListener) {
+          offDoc = onDoc("click", outside);
+          offKey = onEscape(api.close);
+        }
+        ev.emit("open", { x: api.x, y: api.y });
+        return api;
+      },
+      close: function () {
+        if (list.hidden) return api;
+        list.hidden = true;
+        if (offDoc) { offDoc(); offDoc = null; }
+        if (offKey) { offKey(); offKey = null; }
+        ev.emit("open", null);
+        return api;
+      },
+      isOpen: function () { return !list.hidden; },
+      on: function (k, fn) { ev.on(k, fn); return api; },
+      x: 0,
+      y: 0
+    };
+    return api;
+  };
 
   return W;
 });

@@ -522,5 +522,107 @@ ok("trapFocus wraps backwards at the start", (function () {
   return document.activeElement === b;
 })());
 
+
+/* ---------- sortable list ---------- */
+ok("moveItem moves an item forward", JSON.stringify(W.moveItem(["a","b","c"], 0, 2)) === '["b","c","a"]');
+ok("moveItem moves an item back", JSON.stringify(W.moveItem(["a","b","c"], 2, 0)) === '["c","a","b"]');
+ok("moveItem of the same index is a copy", JSON.stringify(W.moveItem(["a","b"], 1, 1)) === '["a","b"]');
+ok("moveItem out of range is a copy", JSON.stringify(W.moveItem(["a","b"], 5, 0)) === '["a","b"]');
+ok("moveItem does not mutate the input", (function () {
+  const src = ["a","b","c"]; W.moveItem(src, 0, 2); return src.join(",") === "a,b,c";
+})());
+ok("slotAt finds the slot under a point", W.slotAt(25, [0,20,40], [20,20,20]) === 1);
+ok("slotAt above everything is -1", W.slotAt(-5, [0,20], [20,20]) === -1);
+ok("slotAt past the end is -1", W.slotAt(100, [0,20], [20,20]) === -1);
+
+const sort = W.sortableList({ items: ["a","b","c"] });
+ok("a sortable renders one row per item", sort.el.children.length === 3);
+ok("rows are draggable", sort.el.children[0].getAttribute("draggable") === "true");
+ok("items() is a copy", (function () { const a = sort.items(); a.push("x"); return sort.items().length === 3; })());
+ok("move reorders and reports", (function () {
+  let seen = null;
+  const s = W.sortableList({ items: ["a","b","c"], onMove: function (f, t, items) { seen = [f, t, items.join("")]; } });
+  s.move(0, 2);
+  return s.items().join("") === "bca" && seen[0] === 0 && seen[1] === 2 && seen[2] === "bca";
+})());
+ok("move emits an event", (function () {
+  let got = null;
+  const s = W.sortableList({ items: ["a","b"] }).on("move", function (e) { got = e; });
+  s.move(1, 0);
+  return got && got.from === 1 && got.to === 0 && got.items.join("") === "ba";
+})());
+ok("a no-op move does not report", (function () {
+  let calls = 0;
+  const s = W.sortableList({ items: ["a","b"], onMove: function () { calls++; } });
+  s.move(0, 0);
+  return calls === 0;
+})());
+ok("set replaces the items", (function () {
+  const s = W.sortableList({ items: ["a"] });
+  s.set(["x","y"]); return s.items().join("") === "xy" && s.el.children.length === 2;
+})());
+ok("keyboard alt+down moves a row", (function () {
+  const s = W.sortableList({ items: ["a","b","c"] });
+  s.el.children[0].dispatch("keydown", { key: "ArrowDown", altKey: true });
+  return s.items().join("") === "bac";
+})());
+ok("keyboard alt+up at the top does nothing", (function () {
+  const s = W.sortableList({ items: ["a","b"] });
+  s.el.children[0].dispatch("keydown", { key: "ArrowUp", altKey: true });
+  return s.items().join("") === "ab";
+})());
+ok("drop reorders from the dragged row", (function () {
+  const s = W.sortableList({ items: ["a","b","c"] });
+  s.el.children[0].dispatch("dragstart", {});
+  s.el.children[2].dispatch("drop", {});
+  return s.items().join("") === "bca";
+})());
+
+/* ---------- context menu ---------- */
+ok("a context menu starts closed", W.contextMenu({ items: [{ value: "x" }] }).isOpen() === false);
+ok("opening records the point", (function () {
+  const m = W.contextMenu({ items: [{ value: "x" }] });
+  m.open(12, 34);
+  return m.isOpen() === true && m.x === 12 && m.y === 34;
+})());
+ok("the menu is placed at the point", (function () {
+  const m = W.contextMenu({ items: [{ value: "x" }] });
+  m.open(12, 34);
+  return m.el.style.left === "12px" && m.el.style.top === "34px";
+})());
+ok("a separator renders", (function () {
+  const m = W.contextMenu({ items: [{ value: "a" }, { separator: true }, { value: "b" }] });
+  return m.el.children.length === 3 && m.el.children[1].getAttribute("role") === "separator";
+})());
+ok("a danger item is marked", (function () {
+  const m = W.contextMenu({ items: [{ value: "del", danger: true }] });
+  return m.el.children[0].className.indexOf("is-danger") !== -1;
+})());
+ok("choosing an item closes and reports", (function () {
+  let chosen = null;
+  const m = W.contextMenu({ items: [{ value: "copy", onSelect: function (v) { chosen = v; } }] });
+  m.open(0, 0);
+  m.el.children[0].dispatch("click", {});
+  return chosen === "copy" && m.isOpen() === false;
+})());
+ok("a disabled item does nothing", (function () {
+  let chosen = null;
+  const m = W.contextMenu({ items: [{ value: "x", disabled: true, onSelect: function (v) { chosen = v; } }] });
+  m.open(0, 0);
+  m.el.children[0].dispatch("click", {});
+  return chosen === null && m.isOpen() === true;
+})());
+ok("opening emits the point", (function () {
+  let at = null;
+  const m = W.contextMenu({ items: [{ value: "x" }] }).on("open", function (p) { at = p; });
+  m.open(5, 6);
+  return at && at.x === 5 && at.y === 6;
+})());
+ok("closing twice is harmless", (function () {
+  const m = W.contextMenu({ items: [{ value: "x" }] });
+  m.open(0, 0); m.close(); m.close();
+  return m.isOpen() === false;
+})());
+
 console.log("\n" + pass + " passed, " + fail + " failed");
 process.exit(fail ? 1 : 0);
