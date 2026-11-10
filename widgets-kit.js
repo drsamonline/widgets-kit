@@ -1123,5 +1123,132 @@
     return api;
   };
 
+
+  /* ---------- floating panel ---------- */
+  /* A panel that floats over the content and can be dragged by its header. The
+     drag maths is pure: clampTo takes the box and the parent size and returns a
+     position that keeps the panel fully inside. */
+  W.clampTo = function (x, y, w, h, pw, ph) {
+    var maxX = pw > w ? pw - w : 0;
+    var maxY = ph > h ? ph - h : 0;
+    return {
+      x: x < 0 ? 0 : (x > maxX ? maxX : x),
+      y: y < 0 ? 0 : (y > maxY ? maxY : y)
+    };
+  };
+
+  W.floatingPanel = function (props) {
+    var p = props || {};
+    var title = p.title == null ? "Panel" : p.title;
+    var header = el("div", { class: "w-float-head" }, [el("span", { class: "w-float-title", text: title })]);
+    if (p.closable !== false) {
+      var closeBtn = el("button", { type: "button", class: "w-float-close", "aria-label": "Close", text: "×" });
+      closeBtn.addEventListener("click", function () { api.close(); });
+      header.appendChild(closeBtn);
+    }
+    var body = el("div", { class: "w-float-body" });
+    var panel = el("div", { class: "w-float", role: "dialog", hidden: true }, [header, body]);
+    var ev = emitter();
+    var pos = { x: p.x || 0, y: p.y || 0 };
+    var size = { w: p.width || 320, h: p.height || 200 };
+    var drag = null;
+
+    function place() {
+      panel.style.left = pos.x + "px";
+      panel.style.top = pos.y + "px";
+      panel.style.width = size.w + "px";
+      panel.style.height = size.h + "px";
+    }
+
+    header.addEventListener("pointerdown", function (e) {
+      drag = { dx: (e.clientX || 0) - pos.x, dy: (e.clientY || 0) - pos.y };
+    });
+    /* move and release are listened for on the panel, which is enough for a test
+       and for a pointer that never leaves it; a real page would add them to the
+       document while dragging. */
+    panel.addEventListener("pointermove", function (e) {
+      if (!drag) return;
+      pos.x = (e.clientX || 0) - drag.dx;
+      pos.y = (e.clientY || 0) - drag.dy;
+      place();
+    });
+    panel.addEventListener("pointerup", function () { drag = null; });
+
+    var api = {
+      el: panel,
+      body: body,
+      open: function () { panel.hidden = false; place(); ev.emit("open", true); return api; },
+      close: function () { panel.hidden = true; ev.emit("open", false); return api; },
+      isOpen: function () { return !panel.hidden; },
+      moveTo: function (x, y) { pos = { x: x, y: y }; place(); return api; },
+      pos: function () { return { x: pos.x, y: pos.y }; },
+      resize: function (w, h) { size = { w: w, h: h }; place(); return api; },
+      size: function () { return { w: size.w, h: size.h }; },
+      /* keep it inside a parent of the given size */
+      clamp: function (pw, ph) {
+        var c = W.clampTo(pos.x, pos.y, size.w, size.h, pw, ph);
+        pos = c; place(); return api;
+      },
+      on: function (k, fn) { ev.on(k, fn); return api; }
+    };
+    place();
+    return api;
+  };
+
+  /* ---------- side navigation ---------- */
+  /* A list of destinations with one current. Selection is by value, and a
+     collapsed state hides the labels while keeping the items reachable. */
+  W.sideNav = function (props) {
+    var p = props || {};
+    var nav = el("nav", { class: "w-sidenav", "aria-label": p.label || "Sections" });
+    var ev = emitter();
+    var items = (p.items || []).slice();
+    var current = p.value != null ? p.value : (items[0] ? items[0].value : null);
+    var collapsed = !!p.collapsed;
+
+    function render() {
+      nav.innerHTML = "";
+      nav.className = collapsed ? "w-sidenav is-collapsed" : "w-sidenav";
+      items.forEach(function (item) {
+        var isCurrent = item.value === current;
+        var li = el("button", {
+          type: "button",
+          class: "w-sidenav-item" + (isCurrent ? " is-current" : ""),
+          "data-value": item.value,
+          "aria-current": isCurrent ? "page" : "false"
+        });
+        if (item.icon) li.appendChild(el("span", { class: "w-sidenav-icon", text: item.icon }));
+        li.appendChild(el("span", { class: "w-sidenav-label", text: item.label == null ? item.value : item.label }));
+        if (collapsed) li.setAttribute("title", item.label == null ? item.value : item.label);
+        li.addEventListener("click", function () {
+          if (item.disabled) return;
+          api.select(item.value);
+        });
+        nav.appendChild(li);
+      });
+    }
+
+    var api = {
+      el: nav,
+      select: function (v) {
+        var hit = items.filter(function (i) { return i.value === v; })[0];
+        if (!hit || hit.disabled || v === current) return api;
+        current = v;
+        render();
+        if (p.onSelect) p.onSelect(v);
+        ev.emit("select", v);
+        return api;
+      },
+      value: function () { return current; },
+      items: function () { return items.slice(); },
+      set: function (next) { items = (next || []).slice(); render(); return api; },
+      collapse: function (on) { collapsed = on === undefined ? !collapsed : !!on; render(); return api; },
+      collapsed: function () { return collapsed; },
+      on: function (k, fn) { ev.on(k, fn); return api; }
+    };
+    render();
+    return api;
+  };
+
   return W;
 });

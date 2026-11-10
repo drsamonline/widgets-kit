@@ -624,5 +624,80 @@ ok("closing twice is harmless", (function () {
   return m.isOpen() === false;
 })());
 
+
+/* ---------- floating panel ---------- */
+ok("clampTo keeps a panel inside", JSON.stringify(W.clampTo(-5, 999, 100, 50, 400, 300)) === '{"x":0,"y":250}');
+ok("clampTo passes through when it fits", JSON.stringify(W.clampTo(10, 20, 100, 50, 400, 300)) === '{"x":10,"y":20}');
+ok("clampTo pins to 0 when the panel is bigger", JSON.stringify(W.clampTo(50, 50, 500, 400, 400, 300)) === '{"x":0,"y":0}');
+
+const fp = W.floatingPanel({ title: "Tools", x: 30, y: 40, width: 200, height: 120 });
+ok("a floating panel starts closed", fp.isOpen() === false);
+ok("it opens", (function () { fp.open(); return fp.isOpen() === true; })());
+ok("it is placed where asked", fp.el.style.left === "30px" && fp.el.style.top === "40px");
+ok("it takes the size it was given", fp.el.style.width === "200px" && fp.el.style.height === "120px");
+ok("it carries its title", fp.el.children[0].children[0].textContent === "Tools");
+ok("moveTo repositions it", (function () { fp.moveTo(5, 6); const p = fp.pos(); return p.x === 5 && p.y === 6; })());
+ok("resize changes its size", (function () { fp.resize(300, 150); const s = fp.size(); return s.w === 300 && s.h === 150; })());
+ok("clamp keeps it in the parent", (function () { fp.moveTo(999, 999); fp.clamp(400, 300); const p = fp.pos(); return p.x === 100 && p.y === 150; })());
+ok("dragging the header moves it", (function () {
+  const d = W.floatingPanel({ x: 0, y: 0, width: 100, height: 100 });
+  d.open();
+  d.el.children[0].dispatch("pointerdown", { clientX: 10, clientY: 10 });
+  d.el.dispatch("pointermove", { clientX: 60, clientY: 40 });
+  const p = d.pos();
+  return p.x === 50 && p.y === 30;
+})());
+ok("pointerup ends the drag", (function () {
+  const d = W.floatingPanel({ x: 0, y: 0 });
+  d.open();
+  d.el.children[0].dispatch("pointerdown", { clientX: 0, clientY: 0 });
+  d.el.dispatch("pointerup", {});
+  d.el.dispatch("pointermove", { clientX: 50, clientY: 50 });
+  return d.pos().x === 0;
+})());
+ok("closing emits", (function () {
+  let seen = null;
+  const d = W.floatingPanel({}).on("open", function (v) { seen = v; });
+  d.open(); d.close();
+  return seen === false;
+})());
+
+/* ---------- side navigation ---------- */
+const sn = W.sideNav({ items: [{ value: "home", label: "Home" }, { value: "docs", label: "Docs" }, { value: "off", label: "Off", disabled: true }] });
+ok("sideNav renders one button per item", sn.el.children.length === 3);
+ok("the first item is current by default", sn.value() === "home" && sn.el.children[0].className.indexOf("is-current") !== -1);
+ok("the current item is marked for a screen reader", sn.el.children[0].getAttribute("aria-current") === "page");
+ok("selecting changes the current", (function () { sn.select("docs"); return sn.value() === "docs"; })());
+ok("and marks the new one", sn.el.children[1].className.indexOf("is-current") !== -1 && sn.el.children[0].className.indexOf("is-current") === -1);
+ok("a click selects", (function () { sn.el.children[0].dispatch("click", {}); return sn.value() === "home"; })());
+ok("a disabled item cannot be selected", (function () { sn.select("off"); return sn.value() === "home"; })());
+ok("an unknown value is ignored", (function () { sn.select("nope"); return sn.value() === "home"; })());
+ok("selecting the current item does not re-emit", (function () {
+  let calls = 0;
+  const s = W.sideNav({ items: [{ value: "a" }], onSelect: function () { calls++; } });
+  s.select("a");
+  return calls === 0;
+})());
+ok("select emits", (function () {
+  let got = null;
+  const s = W.sideNav({ items: [{ value: "a" }, { value: "b" }] }).on("select", function (v) { got = v; });
+  s.select("b");
+  return got === "b";
+})());
+ok("collapse hides the labels", (function () {
+  const s = W.sideNav({ items: [{ value: "a", label: "A" }] });
+  s.collapse(true);
+  return s.collapsed() === true && s.el.className.indexOf("is-collapsed") !== -1 && s.el.children[0].getAttribute("title") === "A";
+})());
+ok("collapse toggles", (function () {
+  const s = W.sideNav({ items: [{ value: "a" }] });
+  s.collapse(); const one = s.collapsed(); s.collapse(); return one === true && s.collapsed() === false;
+})());
+ok("set replaces the items", (function () {
+  const s = W.sideNav({ items: [{ value: "a" }] });
+  s.set([{ value: "x" }, { value: "y" }]);
+  return s.items().length === 2 && s.el.children.length === 2;
+})());
+
 console.log("\n" + pass + " passed, " + fail + " failed");
 process.exit(fail ? 1 : 0);
