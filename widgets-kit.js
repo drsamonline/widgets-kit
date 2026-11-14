@@ -1250,5 +1250,32 @@
     return api;
   };
 
+  /* ---------- button stylesheet, opt-in ---------------------------------
+   * The kit emits classes and leaves them unstyled on purpose: the caller owns
+   * the look. That is also how the fleet grew eighteen pages where a button's
+   * label vanished in one theme — every app re-derived the surface/text pair and
+   * got it wrong the same way (white label on a surface that flips to
+   * near-white, 1.16:1). This is that pair, written once.
+   *
+   * Feed the custom properties from tokens-kit, which chooses the label per
+   * mode: --w-on-primary = Tokens.on("Primary", mode).
+   *
+   *   document.head.appendChild(Object.assign(document.createElement("style"),
+   *     { textContent: W.buttonCss() }));
+   */
+  W.buttonCss = function (opts) {
+    var p = (opts && opts.prefix) || "--w";
+    return [
+      ".w-button{display:inline-flex;align-items:center;justify-content:center;gap:.5em;font:inherit;",
+      "line-height:1.2;padding:.55em 1em;border-radius:.5em;border:1px solid var(" + p + "-line);",
+      "background:var(" + p + "-surface);color:var(" + p + "-on-surface);cursor:pointer;text-decoration:none}",
+      ".w-button-primary{background:var(" + p + "-primary);border-color:var(" + p + "-primary);",
+      "color:var(" + p + "-on-primary)}",
+      ".w-button-ghost{background:transparent;color:var(" + p + "-text);border-color:var(" + p + "-line)}",
+      ".w-button:disabled{opacity:.55;cursor:not-allowed}",
+      ".w-button:focus-visible{outline:2px solid var(" + p + "-primary);outline-offset:2px}"
+    ].join("");
+  };
+
   return W;
 });

@@ -701,3 +701,12 @@ ok("set replaces the items", (function () {
 
 console.log("\n" + pass + " passed, " + fail + " failed");
 process.exit(fail ? 1 : 0);
+
+/* ---------- the paired button stylesheet ---------- */
+(function () {
+  const css = W.buttonCss();
+  ok("buttonCss exists", typeof css === "string" && css.length > 100);
+  ok("primary pairs its own label variable", /\.w-button-primary\{[^}]*color:var\(--w-on-primary\)/.test(css));
+  ok("no hard-coded white label", !/#fff|#ffffff|TextLightSolid/.test(css));
+  ok("custom prefix is honoured", W.buttonCss({ prefix: "--t" }).indexOf("var(--t-on-primary)") !== -1);
+})();
